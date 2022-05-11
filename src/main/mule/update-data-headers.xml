@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="364cb0e3-d9ae-48bf-b032-f06c184f2c26" doc:description="This application is to update values of MySQL database using headers" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="3c1d65fc-b2df-4c38-a427-cb0817218e2c" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="Asq@22w0rd#" database="northwind" />
+	</db:config>
+	<flow name="update-data-headersFlow" doc:id="15246ec1-03c9-495b-8933-e156da38088d" >
+		<http:listener doc:name="Listener" doc:id="09db0cda-005d-403f-bd56-59f6db61514f" config-ref="HTTP_Listener_config" path="my-db" allowedMethods="PUT" doc:description="This application is to update values of MySQL database using headers"/>
+		<logger level="INFO" doc:name="Logger" doc:id="e2682cdb-4a06-411a-b7b6-ec90e492bb63" message='#["The submitted regionId and regionDescripition are: " ++ attributes.headers.regionId ++ " and " ++ attributes.headers.regiondescription]'/>
+		<db:update doc:name="Update data in MySQL db" doc:id="4eb3969a-a8f7-4d6a-91d4-a30370c468e8" config-ref="Database_Config">
+			<db:sql ><![CDATA[UPDATE region 
+SET regiondescription = :regiondescription
+WHERE regionId = :regionId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{'regionId': attributes.headers.regionId,
+'regiondescription': attributes.headers.regiondescription
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message" doc:id="a5e3a25a-1ace-4d20-b445-7bcd2aaafee2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'Message': "Data Updated Successfully!",
+	'Code': 200
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
